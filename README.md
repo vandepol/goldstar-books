@@ -141,6 +141,12 @@ pre-renders the whole library (scenes, level checks, credit page) into
 `docs/index.html`, which GitHub Pages serves. The reader there is the same
 design as the app's — tap-a-word, read-to-me, errorless quiz, word wall, star
 screen, charity page — in plain HTML/JS, because Pages cannot run the server.
+The site also carries a **make-her-book flow**: name, look and story template,
+personalised entirely in the browser and saved to the device. It is honest the
+same way the app is — `scripts/client-lib.ts` bundles the real `checkDraft`
+and `sceneSvg` into the page, so a book a visitor just made is re-measured on
+the spot rather than assumed to pass (renaming the hero preserves the check
+because names always count as known words — and the site proves it per book).
 
 ## Illustrations
 
