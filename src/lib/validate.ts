@@ -15,6 +15,13 @@ import { getLevel, type LevelId } from './levels';
 import { foldWord, normalise, sightWordSet } from './sight-words';
 import type { Draft } from './schema';
 
+/**
+ * What the check actually reads. Structurally satisfied by both a raw model
+ * `Draft` and a finished `Book`, so the starter library and the seed script
+ * can run the same check a generated draft goes through.
+ */
+export type CheckableDraft = Pick<Draft, 'refrains'> & { pages: { text: string }[] };
+
 export interface PageIssue {
   pageIndex: number;
   kind: 'too-long' | 'too-short' | 'too-many-sentences' | 'off-list-word' | 'name-drift';
@@ -56,7 +63,7 @@ export function countWords(sentence: string): number {
  * usually the first word a child learns to recognise, so it is never a fault.
  */
 export function checkDraft(
-  draft: Draft,
+  draft: CheckableDraft,
   levelId: LevelId,
   knownNames: string[] = [],
 ): BookReport {

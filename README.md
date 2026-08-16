@@ -111,6 +111,7 @@ kept by default.
 cp .env.example .env      # add ANTHROPIC_API_KEY, AUTH_SECRET, EMAIL_SERVER
 npm install
 npx prisma db push
+npm run db:seed           # load the ten-story starter library
 npm run dev
 ```
 
@@ -128,12 +129,27 @@ with its own level, interests and words-to-avoid, because the level belongs to
 the reader and everything the generator does keys off it. Teachers have a
 classroom of them.
 
+## The starter library
+
+`src/data/stories.ts` holds ten finished stories — three per early level, two
+per later one — written by hand under the same rules the generator lives
+under, and `tests/stories.test.ts` re-runs every one through `checkDraft` so
+they can never silently fall out of level. `npm run db:seed` loads them.
+
+They are also published as a static showcase: `npx tsx scripts/build-site.ts`
+pre-renders the whole library (scenes, level checks, credit page) into
+`docs/index.html`, which GitHub Pages serves. The reader there is the same
+design as the app's — tap-a-word, read-to-me, errorless quiz, word wall, star
+screen, charity page — in plain HTML/JS, because Pages cannot run the server.
+
 ## Illustrations
 
-Currently a slot, not an implementation. `src/lib/art/provider.ts` defines the
-interface and the frozen art-direction token; the reader draws a mood-tinted
-placeholder with the illustration brief, so a book is readable the moment the
-words are ready.
+`src/lib/art/provider.ts` defines the provider interface and the frozen
+art-direction token. The current provider is `src/lib/art/svg.ts`: flat,
+deterministic SVG scenes composed from the page's mood, the book's setting and
+each character's frozen palette — real pictures, not a grey slot, while still
+being honest that they are generated locally rather than by an image model. A
+book with real `imageUrl`s uses them untouched.
 
 The one thing locked in early: each character carries a **frozen appearance
 block** (`Character.appearance`) that is written once and pasted verbatim into
