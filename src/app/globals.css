@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+/* The app chrome is warm paper, not a dark gradient: adults read long copy
+   here (level check, pricing) and the reader itself is cream. */
+body {
+  background: #EFE7D6;
+  min-height: 100vh;
+}
+
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+
+@keyframes gs-pulse { 0%,100% { opacity:.35; transform:scaleY(.5) } 50% { opacity:1; transform:scaleY(1) } }
+@keyframes gs-pop   { 0% { transform:scale(.6); opacity:0 } 60% { transform:scale(1.08) } 100% { transform:scale(1); opacity:1 } }
+.gs-pop { animation: gs-pop .45s ease both; }

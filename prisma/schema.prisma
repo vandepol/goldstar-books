@@ -1,0 +1,130 @@
+// Gold Star Books — data model.
+//
+// Shape to note: a Child is not a user. One adult account holds several child
+// profiles, each with its own reading level and library, because the level is
+// a property of the reader and everything the app does keys off it. Teachers
+// have a classroom of them; parents usually one or two.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  children Child[]
+}
+
+model Child {
+  id        String   @id @default(cuid())
+  ownerId   String
+  name      String
+  /// starting | building | growing | flying — see src/lib/levels.ts
+  levelId   String   @default("building")
+  /// JSON string array: things this child loves, woven into every book.
+  interests String   @default("[]")
+  /// JSON string array: words and topics to keep out of her books.
+  avoid     String   @default("[]")
+  /// Frozen appearance block, reused as the hero of every book she stars in.
+  appearance String?
+  createdAt DateTime @default(now())
+
+  owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  books Book[]
+
+  @@index([ownerId])
+}
+
+model Book {
+  id        String   @id @default(cuid())
+  childId   String
+  title     String
+  subtitle  String   @default("")
+  levelId   String
+  setting   String   @default("")
+  /// The full Book JSON (src/lib/schema.ts). Stored whole so a book stays
+  /// readable even if the schema gains fields later.
+  content   String
+  /// The validator's report at the time of generation, for the level-check panel.
+  report    String?
+  /// How many attempts the generate-and-check loop needed. Useful telemetry:
+  /// a level that regularly needs three passes has a prompt problem.
+  attempts  Int      @default(1)
+  /// Set when the book was saved despite failing the check, so the UI can warn.
+  degraded  Boolean  @default(false)
+  /// Random token for read-only sharing with a teacher or grandparent.
+  shareToken String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  child    Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  readings Reading[]
+
+  @@index([childId])
+}
+
+/// One recorded read-through. Deliberately minimal: which pages she needed
+/// read aloud, and which words she tapped. That is the signal that tells an
+/// adult what to practise, and it is the only thing worth tracking.
+model Reading {
+  id          String   @id @default(cuid())
+  bookId      String
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  /// JSON: { "tappedWords": string[], "readAloudPages": number[], "quizScore": number }
+  detail      String   @default("{}")
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+}
+
+// --- Auth.js tables ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
