@@ -16,7 +16,7 @@ for (const file of ['.env', '.env.local']) {
   for (const line of readFileSync(path, 'utf-8').split('\n')) {
     const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
     if (!m || line.trim().startsWith('#')) continue;
-    const value = m[2].replace(/^["']|["']$/g, '');
+    const value = m[2].trim().replace(/^["']|["']$/g, '');
     if (!(m[1] in process.env) || file === '.env.local') {
       if (process.env[m[1]] === undefined || !process.env[m[1]]) process.env[m[1]] = value;
     }

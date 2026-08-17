@@ -40,13 +40,25 @@ async function completeText(
       },
       body: JSON.stringify({
         model: OPENAI_TEXT_MODEL,
-        max_completion_tokens: 8000,
+        // GPT-5-family models spend reasoning tokens out of this same budget,
+        // so it must be far larger than the visible JSON; low effort because
+        // this is constrained-format writing, not a puzzle.
+        max_completion_tokens: 24000,
+        reasoning_effort: 'low',
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
       }),
     });
     if (!res.ok) throw new Error(`OpenAI chat API ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const data = (await res.json()) as { choices: { message: { content: string } }[] };
-    return data.choices?.[0]?.message?.content ?? '';
+    const data = (await res.json()) as {
+      choices: { message: { content: string }; finish_reason: string }[];
+    };
+    const choice = data.choices?.[0];
+    if (!choice?.message?.content) {
+      throw new Error(
+        `OpenAI returned no text (finish_reason: ${choice?.finish_reason ?? 'none'}) — usually the reasoning budget ate max_completion_tokens`,
+      );
+    }
+    return choice.message.content;
   }
   const reply = await anthropic!.messages.create({
     model: MODEL,

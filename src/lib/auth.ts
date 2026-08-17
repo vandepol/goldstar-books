@@ -14,8 +14,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   providers: [
     Email({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM,
+      server: process.env.EMAIL_SERVER || { host: 'localhost', port: 25 },
+      from: process.env.EMAIL_FROM || 'Gold Star Books <dev@localhost>',
+      // With no real EMAIL_SERVER configured (local dev, usually), the
+      // magic link prints to the server console instead of being emailed —
+      // sign-in works without SMTP. Configure EMAIL_SERVER in production.
+      ...(process.env.EMAIL_SERVER
+        ? {}
+        : {
+            async sendVerificationRequest({ identifier, url }) {
+              console.log(
+                `\n✉  EMAIL_SERVER is not set — magic link for ${identifier}:\n   ${url}\n`,
+              );
+            },
+          }),
     }),
   ],
   pages: { signIn: '/signin' },

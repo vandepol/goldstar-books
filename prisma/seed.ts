@@ -39,13 +39,13 @@ function withArt(story: Book): Book {
 }
 
 async function main() {
+  // SEED_OWNER_EMAIL attaches the starter library to a real account (set it
+  // to the email you sign in with locally); default is a demo user.
+  const email = process.env.SEED_OWNER_EMAIL ?? 'library@goldstarbooks.local';
   const owner = await db.user.upsert({
-    where: { email: 'library@goldstarbooks.local' },
+    where: { email },
     update: {},
-    create: {
-      email: 'library@goldstarbooks.local',
-      name: 'Starter Library',
-    },
+    create: { email, name: email.includes('@goldstarbooks.local') ? 'Starter Library' : null },
   });
 
   for (const story of STORIES) {
