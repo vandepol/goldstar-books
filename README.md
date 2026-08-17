@@ -124,6 +124,12 @@ Auth is magic-link email only. No passwords, on purpose: the account holder is
 a parent or a teacher, often on a school device, and a forgotten password is
 the most common reason an adult abandons a tool like this.
 
+With no `EMAIL_SERVER` configured (local dev, a laptop demo), the app runs in
+**no-email local mode**: sign-in is direct — type an email, you are in — via
+`/api/dev-login`, which mints the same database session a link sign-in would.
+The route disables itself the moment `EMAIL_SERVER` is set, so production
+keeps the email gate.
+
 A **Child** is not a user. One adult account holds several child profiles, each
 with its own level, interests and words-to-avoid, because the level belongs to
 the reader and everything the generator does keys off it. Teachers have a
