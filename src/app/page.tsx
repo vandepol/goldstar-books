@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { LEVELS, LEVEL_ORDER } from '@/lib/levels';
 import { CREDIT } from '@/lib/credit';
+import { STRATEGIES } from '@/lib/pedagogy';
 
 const PILLARS = [
   {
@@ -153,11 +154,17 @@ export default function Landing() {
               Children with Down syndrome are typically strong visual learners who read by
               whole-word recognition, often well above their measured language age, while working
               memory for spoken language is comparatively weak — a long sentence collapses before
-              the end even when every word is known.{' '}
-              <a className="underline" href="https://dsrf.org/resources/information/education/reading/">DSRF</a>,{' '}
-              <a className="underline" href="https://www.down-syndrome.org/en-gb/resources/reading-language-intervention/">DSEI</a>,{' '}
-              <a className="underline" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3470928/">Burgoyne et al.</a>
+              the end even when every word is known. Every rule this product enforces comes from
+              that evidence base:
             </p>
+            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate">
+              {STRATEGIES.map((s) => (
+                <li key={s.id}>
+                  <b className="text-ink">{s.title}.</b> {s.what}{' '}
+                  <a className="underline" href={s.source.url}>{s.source.label}</a>
+                </li>
+              ))}
+            </ul>
           </details>
         </div>
       </section>

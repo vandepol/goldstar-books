@@ -8,5 +8,12 @@
  */
 
 export { sceneSvg } from '../src/lib/art/svg';
-export { checkDraft } from '../src/lib/validate';
+export { checkDraft, repairInstructions } from '../src/lib/validate';
 export { LEVELS, LEVEL_ORDER, getLevel } from '../src/lib/levels';
+// The real generation pipeline, for the site's bring-your-own-key mode: the
+// browser talks straight to the Anthropic API with the parent's key and runs
+// the same prompt, the same draft schema, the same check-and-repair loop and
+// the same assembly as the server generator.
+export { SYSTEM_PROMPT, buildUserPrompt } from '../src/lib/text/prompt';
+export { assembleBook } from '../src/lib/text/assemble';
+export { DraftSchema } from '../src/lib/schema';

@@ -37,3 +37,30 @@ for (const story of STORIES) {
     );
   });
 }
+
+/**
+ * Word-wall rule from the original series playbook: every word on the wall
+ * must appear at least twice in the story, because the wall is review, and
+ * you cannot review a word you met once.
+ */
+import { normalise, foldWord } from '../src/lib/sight-words';
+
+for (const story of STORIES) {
+  test(`"${story.title}" word wall only reviews words the story used twice`, () => {
+    const counts = new Map<string, number>();
+    for (const page of story.pages) {
+      for (const raw of page.text.split(/\s+/)) {
+        const w = normalise(raw);
+        if (w) counts.set(w, (counts.get(w) ?? 0) + 1);
+      }
+    }
+    const vocab = new Set(counts.keys());
+    for (const word of story.wordWall) {
+      const key = foldWord(normalise(word), vocab);
+      assert.ok(
+        (counts.get(key) ?? 0) >= 2,
+        `wall word "${word}" appears ${counts.get(key) ?? 0} time(s) in the story`,
+      );
+    }
+  });
+}

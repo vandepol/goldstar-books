@@ -141,21 +141,47 @@ pre-renders the whole library (scenes, level checks, credit page) into
 `docs/index.html`, which GitHub Pages serves. The reader there is the same
 design as the app's — tap-a-word, read-to-me, errorless quiz, word wall, star
 screen, charity page — in plain HTML/JS, because Pages cannot run the server.
-The site also carries a **make-her-book flow**: name, look and story template,
-personalised entirely in the browser and saved to the device. It is honest the
-same way the app is — `scripts/client-lib.ts` bundles the real `checkDraft`
-and `sceneSvg` into the page, so a book a visitor just made is re-measured on
-the spot rather than assumed to pass (renaming the hero preserves the check
-because names always count as known words — and the site proves it per book).
+The site is geared to the people the product is for. It carries:
+
+- **The strategy guide** — every teaching strategy the product is built on,
+  rendered from `src/lib/pedagogy.ts` with its source (DSRF, DSE/RLI, the
+  Burgoyne RCT, See and Learn, Down Syndrome Ireland), plus how each book
+  implements it. One source of truth for the app's research panel and the
+  site's marketing, so the claims cannot drift from the code.
+- **A setup questionnaire** — name, age, what she reads now, interests. Age
+  never sets the level; what she reads today does. The result is a reading
+  plan plus a recommended level that highlights matching stories everywhere.
+- **A make-her-book flow** — name, look and story template, personalised in
+  the browser and saved to the device. `scripts/client-lib.ts` bundles the
+  real `checkDraft` and `sceneSvg` into the page, so a just-made book is
+  re-measured on the spot rather than assumed to pass.
+- **Bring-your-own-key generation** — with a parent's Anthropic API key (kept
+  in their browser, sent only to api.anthropic.com), the page runs the app's
+  real prompt, draft schema, check-and-repair loop and `assembleBook`: a
+  brand-new story about what she loves, measured before she sees it.
+- **Flashcards** — every book gets a deck (her name first, then the word
+  wall) following the match–select–name routine, tappable and printable.
+
+Playbook rules are enforced on both surfaces: nothing autoplays — the tap is
+the consent; refrain pages are tagged "You know this one!"; wrong quiz answers
+get "Try again 🙂", never a buzz; tapped words speak slowly; reader hit
+targets are 66px+.
 
 ## Illustrations
 
 `src/lib/art/provider.ts` defines the provider interface and the frozen
-art-direction token. The current provider is `src/lib/art/svg.ts`: flat,
-deterministic SVG scenes composed from the page's mood, the book's setting and
-each character's frozen palette — real pictures, not a grey slot, while still
-being honest that they are generated locally rather than by an image model. A
-book with real `imageUrl`s uses them untouched.
+art-direction token. Two providers exist:
+
+- **`src/lib/art/svg.ts`** (default, free): deterministic flat-vector scenes
+  in the original series' style — a figure builder that reads each character's
+  frozen appearance (hair style, glasses, hat), faces and arm poses keyed to
+  the page's mood, distinct animal silhouettes, and a prop library composed
+  per page from the illustration brief. The same function draws the reader,
+  the dashboard covers and the static site.
+- **`src/lib/art/openai.ts`** (opt-in, paid): real AI art via the OpenAI
+  Images API. Set `ART_PROVIDER=openai` and `OPENAI_API_KEY`. Written to the
+  current API contract but not yet exercised against a live key — run one page
+  and eyeball it before generating whole books.
 
 The one thing locked in early: each character carries a **frozen appearance
 block** (`Character.appearance`) that is written once and pasted verbatim into
@@ -223,6 +249,9 @@ Nobody wants a hardcover of placeholder boxes.
 
 ## Pedagogy sources
 
+The full strategy list with per-strategy sourcing lives in
+`src/lib/pedagogy.ts` and renders on both the app home and the static site.
+
 - Down Syndrome Resource Foundation — *Reading*:
   https://dsrf.org/resources/information/education/reading/
 - Down Syndrome Education International — *Reading and Language Intervention (RLI)*:
@@ -230,4 +259,8 @@ Nobody wants a hardcover of placeholder boxes.
 - Burgoyne et al., *Efficacy of a reading and language intervention for children
   with Down syndrome: a randomized controlled trial*:
   https://pmc.ncbi.nlm.nih.gov/articles/PMC3470928/
+- See and Learn (Down Syndrome Education International): https://www.seeandlearn.org/
+- Down Syndrome Ireland — *Learning to Read: Getting Started*:
+  https://downsyndrome.ie/wp-content/uploads/2025/08/Learning-to-Read-Getting-Started.pdf
+- National Down Syndrome Society — Education resources: https://ndss.org/resources
 - Dolch word lists (public domain, Edward Dolch 1936–48).

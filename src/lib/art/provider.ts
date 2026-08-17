@@ -87,6 +87,13 @@ export const placeholderProvider: ArtProvider = {
 };
 
 export function getProvider(): ArtProvider {
-  // Swap in a real provider here when illustration work starts.
+  // Opt in to real AI illustration with ART_PROVIDER=openai + OPENAI_API_KEY
+  // (see ./openai.ts). Default stays the free deterministic SVG scenes.
+  if (process.env.ART_PROVIDER === 'openai' && process.env.OPENAI_API_KEY) {
+    // Lazy require keeps the provider out of client bundles.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { openaiProvider } = require('./openai') as typeof import('./openai');
+    return openaiProvider;
+  }
   return placeholderProvider;
 }

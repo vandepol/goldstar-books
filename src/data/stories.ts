@@ -170,7 +170,7 @@ const sam: StorySpec = {
     { question: 'Who gets the sheep home?', options: ['Sam', 'The farmer'], answerIndex: 0 },
     { question: 'What does Sam hold out?', options: ['Grass', 'A hat'], answerIndex: 0 },
   ],
-  wordWall: ['run', 'sheep', 'up', 'down', 'home'],
+  wordWall: ['run', 'sheep', 'hill', 'come', 'home'],
 };
 
 const nia: StorySpec = {
@@ -215,7 +215,7 @@ const nia: StorySpec = {
     { question: 'What does Nia find?', options: ['A box', 'A hat'], answerIndex: 0 },
     { question: 'Who helps the cat?', options: ['Nia', 'A man'], answerIndex: 0 },
   ],
-  wordWall: ['cat', 'up', 'down', 'help', 'box'],
+  wordWall: ['cat', 'up', 'down', 'help', 'come'],
 };
 
 /* ------------------------------------------------------------------------- */
@@ -321,7 +321,7 @@ const ava: StorySpec = {
     { question: 'What goes on top?', options: ['Red and white', 'Green and blue'], answerIndex: 0 },
     { question: 'Whose party is it?', options: ['The birthday party', 'A school party'], answerIndex: 0 },
   ],
-  wordWall: ['cake', 'mix', 'egg', 'milk', 'birthday'],
+  wordWall: ['cake', 'mix', 'top', 'big', 'get'],
 };
 
 const finn: StorySpec = {
@@ -371,7 +371,7 @@ const finn: StorySpec = {
     { question: 'What is the boat made of?', options: ['Paper', 'Wood'], answerIndex: 0 },
     { question: 'Who has the good ideas?', options: ['Finn', 'The cat'], answerIndex: 0 },
   ],
-  wordWall: ['rain', 'house', 'boat', 'paper', 'play'],
+  wordWall: ['rain', 'house', 'boat', 'idea', 'play'],
 };
 
 /* --------------------------------------------------------------------- */
@@ -425,7 +425,7 @@ const ruby: StorySpec = {
     { question: 'What was over the garden?', options: ['A big tree', 'A house'], answerIndex: 0 },
     { question: 'Who worked it out?', options: ['Ruby', 'The teacher'], answerIndex: 0 },
   ],
-  wordWall: ['seed', 'garden', 'sun', 'green', 'water'],
+  wordWall: ['seeds', 'garden', 'sun', 'green', 'water'],
 };
 
 const owen: StorySpec = {
@@ -534,7 +534,7 @@ const zara: StorySpec = {
     { question: 'Who cut the way through the snow first?', options: ['Zara', 'The friends'], answerIndex: 0 },
     { question: 'What did the snowman get?', options: ['A party hat', 'A coat'], answerIndex: 0 },
   ],
-  wordWall: ['snow', 'sled', 'party', 'hill', 'together'],
+  wordWall: ['snow', 'sled', 'party', 'hill', 'friends'],
 };
 
 const kai: StorySpec = {
@@ -589,7 +589,7 @@ const kai: StorySpec = {
     { question: 'Who won the race?', options: ['Kai', 'June'], answerIndex: 0 },
     { question: 'What was the best part?', options: ['A new friend', 'The prize'], answerIndex: 0 },
   ],
-  wordWall: ['boat', 'race', 'water', 'wind', 'star'],
+  wordWall: ['boat', 'race', 'water', 'sail', 'star'],
 };
 
 /* ------------------------------------------------------- */
