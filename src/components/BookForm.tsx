@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVELS, LEVEL_ORDER, type LevelId } from '@/lib/levels';
+import { NewReader } from '@/components/NewReader';
 
 export interface ChildOption {
   id: string;
@@ -79,6 +80,7 @@ const STAGES = [
 export function BookForm({ children }: { children: ChildOption[] }) {
   const router = useRouter();
   const [childId, setChildId] = useState(children[0]?.id ?? '');
+  const [addingReader, setAddingReader] = useState(false);
   const child = children.find((c) => c.id === childId);
   const [levelId, setLevelId] = useState<LevelId>(child?.levelId ?? 'building');
   const [pick, setPick] = useState<number | null>(null);
@@ -173,7 +175,20 @@ export function BookForm({ children }: { children: ChildOption[] }) {
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setAddingReader((v) => !v)}
+          className={`flex min-w-[160px] items-center gap-3 rounded-2xl border-2 border-dashed p-4 text-left ${addingReader ? 'border-sea' : 'border-line'}`}
+        >
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-parchment text-xl font-bold text-gold-deep">＋</span>
+          <span className="text-[15px] font-semibold text-slate">New reader</span>
+        </button>
       </div>
+      {addingReader && (
+        <div className="mb-10">
+          <NewReader onDone={() => setAddingReader(false)} />
+        </div>
+      )}
 
       <Step n={2} title="What happens in it?" />
       <p className="mb-4 ml-[38px] text-[15px] text-muted">

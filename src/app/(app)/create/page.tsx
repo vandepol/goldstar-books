@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BookForm, type ChildOption } from '@/components/BookForm';
+import { NewReader } from '@/components/NewReader';
 import type { LevelId } from '@/lib/levels';
 
 export default async function CreatePage() {
@@ -22,7 +23,19 @@ export default async function CreatePage() {
     avoid: safeList(c.avoid),
   }));
 
-  if (!children.length) redirect('/dashboard');
+  // A brand-new account has no readers yet — show the setup step right here
+  // instead of bouncing back to the dashboard (which read as a dead click).
+  if (!children.length) {
+    return (
+      <main className="mx-auto max-w-4xl px-6 py-12">
+        <p className="text-sm font-semibold uppercase tracking-[.06em] text-gold-deep">New book</p>
+        <h1 className="mb-8 mt-2 font-display text-4xl font-medium tracking-tight">
+          Two taps and she&rsquo;s the hero.
+        </h1>
+        <NewReader first />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
