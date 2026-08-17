@@ -15,7 +15,7 @@
 import type { Character, Page } from '../schema';
 import type { ArtProvider, RenderRequest, RenderResult } from './provider';
 
-export const IMAGE_MODEL = 'gpt-image-1';
+export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-1';
 
 export interface ImageOptions {
   /** png is lossless and huge; jpeg/webp are what you want to store. */
@@ -26,8 +26,17 @@ export interface ImageOptions {
   size: '1024x1024' | '1536x1024' | '1024x1536';
 }
 
-/** Repo default: good-looking, storable, matches the reader's wide slot. */
-export const BAKED_ART: ImageOptions = { format: 'jpeg', compression: 82, quality: 'medium', size: '1536x1024' };
+/** Repo default: good-looking, storable, matches the reader's wide slot.
+ *  ART_QUALITY=low drops the cost ~4x (≈$0.016/image) — for this flat
+ *  picture-book style, low is usually indistinguishable at book size; use
+ *  --test to eyeball one before a batch. */
+const envQuality = process.env.ART_QUALITY;
+export const BAKED_ART: ImageOptions = {
+  format: 'jpeg',
+  compression: 82,
+  quality: envQuality === 'low' || envQuality === 'high' ? envQuality : 'medium',
+  size: '1536x1024',
+};
 /** Browser default: small enough that a whole book fits in localStorage. */
 export const BROWSER_ART: ImageOptions = { format: 'webp', compression: 70, quality: 'low', size: '1536x1024' };
 
