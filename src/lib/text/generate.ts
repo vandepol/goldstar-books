@@ -14,7 +14,51 @@ import { checkDraft, repairInstructions, type BookReport } from '../validate';
 import { buildUserPrompt, SYSTEM_PROMPT, type PromptContext } from './prompt';
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL ?? 'gpt-5';
 const MAX_ATTEMPTS = Number(process.env.GENERATION_MAX_ATTEMPTS ?? 3);
+
+/**
+ * Which model writes the words. Explicit TEXT_PROVIDER wins; otherwise
+ * whichever key is present, Anthropic first — the prompt was tuned against
+ * Claude, and the repair loop is what holds either model to the level.
+ */
+const TEXT_PROVIDER =
+  process.env.TEXT_PROVIDER ??
+  (process.env.ANTHROPIC_API_KEY ? 'anthropic' : process.env.OPENAI_API_KEY ? 'openai' : 'anthropic');
+
+/** One text completion, provider-agnostic. Messages use the shared shape. */
+async function completeText(
+  anthropic: Anthropic | null,
+  messages: Anthropic.MessageParam[],
+): Promise<string> {
+  if (TEXT_PROVIDER === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: OPENAI_TEXT_MODEL,
+        max_completion_tokens: 8000,
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenAI chat API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const data = (await res.json()) as { choices: { message: { content: string } }[] };
+    return data.choices?.[0]?.message?.content ?? '';
+  }
+  const reply = await anthropic!.messages.create({
+    model: MODEL,
+    max_tokens: 8000,
+    system: SYSTEM_PROMPT,
+    messages,
+  });
+  return reply.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+}
 
 export interface GenerationResult {
   book: Book;
@@ -44,7 +88,7 @@ export async function generateBook(
   request: BookRequest,
   childName: string,
 ): Promise<GenerationResult> {
-  const anthropic = client();
+  const anthropic = TEXT_PROVIDER === 'anthropic' ? client() : null;
   const ctx: PromptContext = { ...request, childName };
   const knownNames = [childName, ...request.characters.map((c) => c.name)];
 
@@ -58,17 +102,7 @@ export async function generateBook(
 
   while (attempts < MAX_ATTEMPTS) {
     attempts++;
-    const reply = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 8000,
-      system: SYSTEM_PROMPT,
-      messages,
-    });
-
-    const text = reply.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
+    const text = await completeText(anthropic, messages);
 
     try {
       draft = parseDraft(text);

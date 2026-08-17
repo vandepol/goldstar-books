@@ -1,0 +1,67 @@
+# Render real AI illustrations for the starter library, using the repo secret
+# OPENAI_API_KEY — the one safe place to put a key for a public Pages site,
+# because it exists only during the build and never reaches the published page.
+#
+# One-time setup: repo Settings → Secrets and variables → Actions →
+# "New repository secret" → name OPENAI_API_KEY, value sk-...
+#
+# Then: Actions tab → "Render starter art" → Run workflow → pick a mode.
+# The rendered images are committed back to main; GitHub Pages redeploys the
+# site with the new art automatically. Idempotent — already-rendered images
+# are skipped, so re-runs only pay for what is missing.
+
+name: Render starter art
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'What to render'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test      # one image (~$0.06) — eyeball it first
+          - covers    # ten covers (~$0.65)
+          - all       # every page of every book (~$16)
+      book:
+        description: 'Or a single book id (e.g. story-tess-ball) — overrides mode'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-art
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Render
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "${{ inputs.book }}" ]; then
+            npx tsx scripts/render-art.ts --book "${{ inputs.book }}" --yes
+          else
+            npx tsx scripts/render-art.ts --${{ inputs.mode }} --yes
+          fi
+      - name: Rebuild site with the new art
+        run: npx tsx scripts/build-site.ts
+      - name: Commit rendered art
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/art src/data/art.json docs
+          git diff --cached --quiet && echo "Nothing new to commit" && exit 0
+          git commit -m "Render starter art (${{ inputs.book || inputs.mode }}) [skip ci]"
+          git push

@@ -17,3 +17,7 @@ export { LEVELS, LEVEL_ORDER, getLevel } from '../src/lib/levels';
 export { SYSTEM_PROMPT, buildUserPrompt } from '../src/lib/text/prompt';
 export { assembleBook } from '../src/lib/text/assemble';
 export { DraftSchema } from '../src/lib/schema';
+// In-browser illustration with the visitor's OpenAI key (their API allows
+// browser CORS): same prompt and call the server provider uses.
+export { buildImagePrompt, generateImage, BROWSER_ART } from '../src/lib/art/openai';
+export { DEFAULT_STYLE_TOKEN } from '../src/lib/art/provider';

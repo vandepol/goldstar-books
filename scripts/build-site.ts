@@ -27,7 +27,7 @@
  * get "Try again 🙂", never a buzz; tapped words speak slowly.
  */
 
-import { writeFileSync, mkdirSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { buildSync } from 'esbuild';
 import { STORIES } from '../src/data/stories';
@@ -37,6 +37,30 @@ import { STRATEGIES, SOURCES } from '../src/lib/pedagogy';
 
 const OUT = join(__dirname, '..', 'docs');
 
+/* Baked AI art (scripts/render-art.ts / the Render starter art workflow).
+   Site paths are relative, so they work under the /goldstar-books/ subpath. */
+type ArtManifest = Record<string, { cover?: string; pages: Record<string, string> }>;
+let ART: ArtManifest = {};
+try {
+  ART = JSON.parse(readFileSync(join(__dirname, '..', 'src', 'data', 'art.json'), 'utf-8'));
+} catch {
+  /* no art rendered yet — SVG scenes everywhere */
+}
+const SITE_STORIES = STORIES.map((b) => {
+  const art = ART[b.id];
+  if (!art) return b;
+  return {
+    ...b,
+    pages: b.pages.map((p) => {
+      const file = art.pages[String(p.index)];
+      return file ? { ...p, illustration: { ...p.illustration, imageUrl: file, status: 'ready' as const } } : p;
+    }),
+  };
+});
+const COVER_ART = Object.fromEntries(
+  Object.entries(ART).flatMap(([id, a]) => (a.cover ? [[id, a.cover]] : [])),
+);
+
 const lib = buildSync({
   entryPoints: [join(__dirname, 'client-lib.ts')],
   bundle: true,
@@ -45,6 +69,10 @@ const lib = buildSync({
   globalName: 'GSB',
   write: false,
   target: 'es2020',
+  define: {
+    'process.env.ART_PROVIDER': 'undefined',
+    'process.env.OPENAI_API_KEY': 'undefined',
+  },
 }).outputFiles[0].text;
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -117,8 +145,9 @@ const genLevelOptions = LEVEL_ORDER.map(
 /* The page script. String.raw + no ${} inside — client code concatenates. */
 const script = String.raw`
 const BOOKS = __BOOKS__;
+const COVERART = __COVERART__;
 const CREDIT = __CREDIT__;
-const LKEY = 'gsb-books', CKEY = 'gsb-child', KKEY = 'gsb-api-key';
+const LKEY = 'gsb-books', CKEY = 'gsb-child', KKEY = 'gsb-api-key', IKEY = 'gsb-openai-key';
 
 const $ = (id) => document.getElementById(id);
 const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -149,10 +178,15 @@ function speak(text, rate, onend) {
 const quiet = () => { if ('speechSynthesis' in window) speechSynthesis.cancel(); };
 
 /* ---------------- covers ---------------- */
+function coverArtOf(b) {
+  return b.coverArt || COVERART[b.id] || null;
+}
 function drawCovers() {
   document.querySelectorAll('[data-cover]').forEach((el) => {
     const b = findBook(el.dataset.cover);
-    if (b) el.innerHTML = GSB.sceneSvg(b, { kind: 'cover' });
+    if (!b) return;
+    const art = coverArtOf(b);
+    el.innerHTML = art ? '<img src="' + art + '" alt="">' : GSB.sceneSvg(b, { kind: 'cover' });
   });
 }
 
@@ -228,7 +262,8 @@ function render() {
   $('r-where2').textContent = pageLabel(s);
   $('r-prev').disabled = at === 0;
   $('r-next').disabled = at === list.length - 1;
-  $('r-scene').innerHTML = GSB.sceneSvg(book, s);
+  const pageArt = s.kind === 'page' ? book.pages[s.index].illustration.imageUrl : (s.kind === 'cover' ? coverArtOf(book) : null);
+  $('r-scene').innerHTML = pageArt ? '<img src="' + pageArt + '" alt="">' : GSB.sceneSvg(book, s);
   $('r-say').style.display = (s.kind === 'cover' || s.kind === 'page') ? 'flex' : 'none';
   $('r-say').classList.remove('on');
 
@@ -522,6 +557,22 @@ document.querySelectorAll('.pick').forEach((el) => {
 });
 $('b-name').addEventListener('input', refreshBuilder);
 document.querySelectorAll('.sw input').forEach((el) => el.addEventListener('change', refreshBuilder));
+function saveBook(b) {
+  const list = mine();
+  list.unshift(b);
+  try {
+    localStorage.setItem(LKEY, JSON.stringify(list.slice(0, 20)));
+    return true;
+  } catch (e) {
+    // Too big for this device's storage — keep the words, drop this book's
+    // pictures, and say so rather than failing silently.
+    delete b.coverArt;
+    b.pages.forEach((p) => { if ((p.illustration.imageUrl || '').indexOf('data:') === 0) { p.illustration.imageUrl = null; p.illustration.status = 'placeholder'; } });
+    try { localStorage.setItem(LKEY, JSON.stringify(list.slice(0, 12))); } catch (e2) {}
+    return false;
+  }
+}
+
 $('b-make').onclick = () => {
   const name = builderName();
   if (!name || !pickedTemplate) return;
@@ -531,9 +582,7 @@ $('b-make').onclick = () => {
     $('b-hint').textContent = 'Something about this name knocked the story out of level — try another.';
     return;
   }
-  const list = mine();
-  list.unshift(b);
-  store(LKEY, list.slice(0, 20));
+  saveBook(b);
   renderMine();
   location.hash = '#/book/' + b.id;
 };
@@ -541,7 +590,39 @@ $('b-make').onclick = () => {
 /* ---------------- bring-your-own-key generation ---------------- */
 $('g-key').value = load(KKEY, '');
 $('g-key').addEventListener('change', () => store(KKEY, $('g-key').value.trim()));
-$('g-forget').onclick = () => { $('g-key').value = ''; store(KKEY, ''); };
+$('g-imgkey').value = load(IKEY, '');
+$('g-imgkey').addEventListener('change', () => store(IKEY, $('g-imgkey').value.trim()));
+$('g-forget').onclick = () => { $('g-key').value = ''; store(KKEY, ''); $('g-imgkey').value = ''; store(IKEY, ''); };
+
+/* Paint a book's pages (and a cover) with the visitor's OpenAI key — the
+   OpenAI API allows browser calls, and the key stays on this device. Pages
+   that fail to paint just keep their SVG scene. */
+async function paintBook(b, key, onProgress) {
+  const style = GSB.DEFAULT_STYLE_TOKEN;
+  const queue = b.pages.slice();
+  const total = queue.length + 1;
+  let done = 0;
+  async function worker() {
+    while (queue.length) {
+      const p = queue.shift();
+      try {
+        const img = await GSB.generateImage(key, GSB.buildImagePrompt(p, b.characters, style), GSB.BROWSER_ART);
+        p.illustration.imageUrl = 'data:' + img.mime + ';base64,' + img.b64;
+        p.illustration.status = 'ready';
+      } catch (e) { /* keep the SVG scene for this page */ }
+      done++;
+      onProgress(done, total);
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  try {
+    const cover = await GSB.generateImage(key, GSB.buildImagePrompt(
+      { text: b.title, illustration: { action: 'book cover portrait: ' + heroName(b) + ' stands front and centre looking at the reader', place: b.setting, mood: 'happy' } },
+      b.characters, style + ', absolutely no text or lettering anywhere'), GSB.BROWSER_ART);
+    b.coverArt = 'data:' + cover.mime + ';base64,' + cover.b64;
+  } catch (e) { /* SVG cover */ }
+  onProgress(total, total);
+}
 
 function stage(msg) { $('g-status').textContent = msg; }
 
@@ -621,11 +702,15 @@ $('g-make').onclick = async () => {
     if (!draft || !report) throw new Error('The model never returned a valid book. Nothing was saved — try again.');
     const b = GSB.assembleBook(draft, request);
     b.id = 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const list = mine();
-    list.unshift(b);
-    store(LKEY, list.slice(0, 20));
+    const imgkey = $('g-imgkey').value.trim();
+    if (imgkey) {
+      stage('Painting the pictures — a few minutes, a few cents a page…');
+      await paintBook(b, imgkey, (d, n) => stage('Painting picture ' + d + ' of ' + n + '…'));
+    }
+    const kept = saveBook(b);
     renderMine();
-    stage(report.ok ? 'Done — every check passed.' : 'Saved, but it missed some checks — the For grown-ups panel shows exactly which.');
+    stage((report.ok ? 'Done — every check passed.' : 'Saved, but it missed some checks — the For grown-ups panel shows exactly which.') +
+      (kept ? '' : ' The pictures were too big to keep on this device, so the words were saved without them.'));
     location.hash = '#/book/' + b.id;
   } catch (err) {
     stage(err.message);
@@ -829,6 +914,8 @@ const html = `<!DOCTYPE html>
   @media(max-width:860px), (orientation:portrait){.rbody{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
   .rscene{background:var(--parchment);display:flex;align-items:center;justify-content:center;padding:28px;min-height:0}
   .rscene svg{max-width:100%;max-height:100%;border-radius:14px;display:block}
+  .rscene img{max-width:100%;max-height:100%;border-radius:14px;display:block;object-fit:contain}
+  .cover img{display:block;width:100%;height:auto}
   .rtext{background:var(--page);display:flex;flex-direction:column;min-height:0}
   .rwords{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 48px;overflow:auto}
   .rwords .refrain{align-self:flex-start;background:var(--gold);color:var(--ink);font-size:13px;font-weight:700;letter-spacing:.04em;border-radius:999px;padding:7px 14px;margin-bottom:14px}
@@ -1028,7 +1115,8 @@ const html = `<!DOCTYPE html>
         <label class="f">Her level <select id="g-level">${genLevelOptions}</select></label>
         <label class="f">Things she loves (commas) <input id="g-interests" type="text" maxlength="200" placeholder="dogs, music, candy apples"></label>
         <label class="f">Keep out of the book (commas) <input id="g-avoid" type="text" maxlength="200" placeholder="thunder, needles"></label>
-        <label class="f full">Your Anthropic API key <input id="g-key" type="password" placeholder="sk-ant-…" autocomplete="off"></label>
+        <label class="f">Anthropic API key (writes the story) <input id="g-key" type="password" placeholder="sk-ant-…" autocomplete="off"></label>
+        <label class="f">OpenAI API key (optional — paints the pictures) <input id="g-imgkey" type="password" placeholder="sk-…" autocomplete="off"></label>
       </div>
       <div class="genrow">
         <button id="g-make">Write her new story</button>
@@ -1038,8 +1126,10 @@ const html = `<!DOCTYPE html>
       <p class="keynote">Name and look come from steps 1 and 2 above. Generation takes about a
       minute: written, checked against her level, and repaired until it passes — the same loop the
       full app runs. If it still misses after three passes it is saved and labelled honestly, never
-      hidden. Your key is stored only in this browser (Forget my key removes it) and is sent only
-      to api.anthropic.com.</p>
+      hidden. Add an OpenAI key and every page gets a painted picture too (a few more minutes and
+      roughly forty cents a book); pages that fail to paint keep their drawn scene. Keys are stored
+      only in this browser (Forget my key removes both) and are sent only to api.anthropic.com and
+      api.openai.com.</p>
     </div>
   </section>
 
@@ -1127,7 +1217,8 @@ const html = `<!DOCTYPE html>
 <script>${lib}</script>
 <script>
 ${script
-  .replace('__BOOKS__', JSON.stringify(STORIES))
+  .replace('__BOOKS__', JSON.stringify(SITE_STORIES))
+  .replace('__COVERART__', JSON.stringify(COVER_ART))
   .replace('__CREDIT__', JSON.stringify(CREDIT))}
 </script>
 </body>
@@ -1135,6 +1226,8 @@ ${script
 `;
 
 mkdirSync(OUT, { recursive: true });
+const artSrc = join(__dirname, '..', 'public', 'art');
+if (existsSync(artSrc)) cpSync(artSrc, join(OUT, 'art'), { recursive: true });
 writeFileSync(join(OUT, 'index.html'), html);
 writeFileSync(join(OUT, '.nojekyll'), '');
 console.log(`Wrote docs/index.html (${(html.length / 1024).toFixed(0)} KB, ${STORIES.length} templates, lib ${(lib.length / 1024).toFixed(0)} KB)`);

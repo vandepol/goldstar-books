@@ -8,12 +8,35 @@
  *   npm run db:seed
  */
 
+import '../scripts/env';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { PrismaClient } from '@prisma/client';
 import { STORIES } from '../src/data/stories';
 import { checkDraft } from '../src/lib/validate';
 import type { LevelId } from '../src/lib/levels';
+import type { Book } from '../src/lib/schema';
 
 const db = new PrismaClient();
+
+/** Baked AI art, if scripts/render-art.ts has run. Missing file = no art. */
+function withArt(story: Book): Book {
+  let manifest: Record<string, { cover?: string; pages: Record<string, string> }>;
+  try {
+    manifest = JSON.parse(readFileSync(join(__dirname, '..', 'src', 'data', 'art.json'), 'utf-8'));
+  } catch {
+    return story;
+  }
+  const art = manifest[story.id];
+  if (!art) return story;
+  return {
+    ...story,
+    pages: story.pages.map((p) => {
+      const file = art.pages[String(p.index)];
+      return file ? { ...p, illustration: { ...p.illustration, imageUrl: `/${file}`, status: 'ready' as const } } : p;
+    }),
+  };
+}
 
 async function main() {
   const owner = await db.user.upsert({
@@ -54,7 +77,7 @@ async function main() {
       subtitle: story.subtitle,
       levelId: story.levelId,
       setting: story.setting,
-      content: JSON.stringify(story),
+      content: JSON.stringify(withArt(story)),
       report: JSON.stringify(report),
       attempts: 1,
       degraded: false,
