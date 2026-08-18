@@ -44,7 +44,7 @@ async function completeText(
         // so it must be far larger than the visible JSON; low effort because
         // this is constrained-format writing, not a puzzle.
         max_completion_tokens: 24000,
-        reasoning_effort: 'low',
+        reasoning_effort: process.env.OPENAI_REASONING_EFFORT ?? 'medium',
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
       }),
     });
@@ -60,12 +60,16 @@ async function completeText(
     }
     return choice.message.content;
   }
-  const reply = await anthropic!.messages.create({
+  // Streamed, then reassembled: a long book from a large model can take
+  // minutes, and a silent non-streaming connection gets cut ("premature
+  // close") long before the reply is ready. Streaming keeps bytes moving.
+  const stream = anthropic!.messages.stream({
     model: MODEL,
     max_tokens: 8000,
     system: SYSTEM_PROMPT,
     messages,
   });
+  const reply = await stream.finalMessage();
   return reply.content
     .filter((b): b is Anthropic.TextBlock => b.type === 'text')
     .map((b) => b.text)

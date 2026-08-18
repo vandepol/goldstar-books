@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BookSchema } from '@/lib/schema';
 import { sceneSvg } from '@/lib/art/svg';
+import { coverArtUrl } from '@/lib/art/manifest';
 import { LEVELS, nextLevel, type LevelId } from '@/lib/levels';
 
 // Shapes of the two queries below. Written out rather than inferred so this
@@ -18,10 +19,15 @@ type ChildRow = {
   _count: { books: number };
 };
 
-/** A book card's cover: the same generated scene the reader shows. */
+/** A book card's cover: baked AI art when it exists, the drawn scene otherwise. */
 function Cover({ content }: { content: string }) {
   try {
     const book = BookSchema.parse(JSON.parse(content));
+    const art = coverArtUrl(book.id) ?? book.pages[0]?.illustration.imageUrl ?? null;
+    if (art) {
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img src={art} alt="" className="aspect-[16/10] w-full rounded-t-[14px] object-cover" />;
+    }
     return (
       <div
         className="aspect-[16/10] w-full overflow-hidden rounded-t-[14px] [&>svg]:h-full [&>svg]:w-full"

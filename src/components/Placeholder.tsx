@@ -10,6 +10,7 @@
  */
 import type { Book } from '@/lib/schema';
 import { sceneSvg } from '@/lib/art/svg';
+import { coverArtUrl } from '@/lib/art/manifest';
 
 type Screen =
   | { kind: 'cover' }
@@ -21,11 +22,15 @@ type Screen =
 
 export function Placeholder({ book, screen }: { book: Book; screen: Screen }) {
   const page = screen.kind === 'page' ? book.pages[screen.index] : null;
-  const url = page?.illustration.imageUrl;
+  const url =
+    page?.illustration.imageUrl ??
+    (screen.kind === 'cover'
+      ? (coverArtUrl(book.id) ?? book.pages[0]?.illustration.imageUrl ?? null)
+      : null);
 
   if (url) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt={page.illustration.action} className="aspect-[16/10] w-full object-cover" />;
+    return <img src={url} alt={page?.illustration.action ?? book.title} className="aspect-[16/10] w-full object-cover" />;
   }
 
   return (

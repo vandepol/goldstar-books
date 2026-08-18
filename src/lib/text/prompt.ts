@@ -26,6 +26,7 @@ What that means in practice:
 8. No idioms, no sarcasm, no wordplay, no implied meaning that has to be inferred from tone. Say the thing.
 9. The picture on each page must show exactly what the sentence says, so the image supports meaning rather than competing with it.
 10. Never mention disability, never make the story a lesson about difference, and never write the child as brave *despite* anything. She is just the hero.
+11. Villains are silly rather than frightening, and they get a way back in — rescued, invited to the party, given a wish. "Everyone needs help sometimes" is a thread worth keeping.
 
 Tone: warm, funny, a bit silly, with real stakes and a real win. Aim for a book an older sibling would not sneer at.
 

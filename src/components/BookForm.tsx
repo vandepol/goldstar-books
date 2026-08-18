@@ -75,6 +75,8 @@ const STAGES = [
   'Checking the sight words…',
   'Repairing the pages that missed…',
   'Checking the refrains…',
+  'Painting the pictures — this is the slow part…',
+  'Still painting. Real pictures take a minute…',
 ];
 
 export function BookForm({ children }: { children: ChildOption[] }) {
@@ -133,7 +135,7 @@ export function BookForm({ children }: { children: ChildOption[] }) {
           })),
           interests: child?.interests ?? [],
           avoid: child?.avoid ?? [],
-          illustrate: false,
+          illustrate: true,
         }),
       });
       if (!response.ok) throw new Error(await response.text());

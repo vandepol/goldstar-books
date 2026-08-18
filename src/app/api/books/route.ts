@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { BookRequestSchema } from '@/lib/schema';
 import { generateBook } from '@/lib/text/generate';
+import { canIllustrate, illustrateBook } from '@/lib/art/illustrate';
 
 export async function GET(request: Request) {
   const user = await requireUser();
@@ -42,6 +43,12 @@ export async function POST(request: Request) {
   };
 
   const { book, report, attempts, degraded } = await generateBook(merged, child.name);
+
+  // Real pictures for this book, painted now so the first read has them.
+  // Failures degrade to the drawn scenes; the words are never held hostage.
+  if (merged.illustrate && canIllustrate()) {
+    await illustrateBook(book, book.id);
+  }
 
   const saved = await db.book.create({
     data: {
