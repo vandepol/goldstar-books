@@ -12,7 +12,7 @@ export default async function CreatePage() {
   const rows = await db.child.findMany({
     where: { ownerId: session.user.id },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, name: true, levelId: true, interests: true, avoid: true },
+    select: { id: true, name: true, levelId: true, interests: true, avoid: true, appearance: true, palette: true },
   });
 
   const children: ChildOption[] = rows.map((c) => ({
@@ -21,6 +21,8 @@ export default async function CreatePage() {
     levelId: c.levelId as LevelId,
     interests: safeList(c.interests),
     avoid: safeList(c.avoid),
+    appearance: c.appearance ?? undefined,
+    palette: safePalette(c.palette),
   }));
 
   // A brand-new account has no readers yet — show the setup step right here
@@ -50,5 +52,17 @@ function safeList(json: string): string[] {
     return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
   } catch {
     return [];
+  }
+}
+
+function safePalette(
+  json: string | null,
+): { primary: string; secondary: string; skin: string; hair: string } | undefined {
+  if (!json) return undefined;
+  try {
+    const p = JSON.parse(json);
+    return p && p.primary && p.skin && p.hair ? p : undefined;
+  } catch {
+    return undefined;
   }
 }

@@ -20,6 +20,8 @@ export interface ChildOption {
   levelId: LevelId;
   interests?: string[];
   avoid?: string[];
+  appearance?: string;
+  palette?: { primary: string; secondary: string; skin: string; hair: string };
 }
 
 interface Idea {
@@ -113,7 +115,8 @@ export function BookForm({ children }: { children: ChildOption[] }) {
     );
     try {
       const characters = [
-        { name, role: 'hero' as const, appearance: '' },
+        // The child's frozen look from her profile — the picture-continuity anchor.
+        { name, role: 'hero' as const, appearance: child?.appearance ?? '' },
         ...extraCast
           .split(',')
           .map((s) => s.trim())
@@ -128,10 +131,12 @@ export function BookForm({ children }: { children: ChildOption[] }) {
           levelId,
           outline,
           setting: place,
-          characters: characters.map((c) => ({
+          characters: characters.map((c, i) => ({
             ...c,
             appearance: c.appearance || `${c.name}, a friendly ${c.role}`,
-            palette: { primary: '#155E86', secondary: '#1E7A4B', skin: '#F6C9A4', hair: '#4E3220' },
+            palette:
+              (i === 0 && child?.palette) ||
+              { primary: '#155E86', secondary: '#1E7A4B', skin: '#F6C9A4', hair: '#4E3220' },
           })),
           interests: child?.interests ?? [],
           avoid: child?.avoid ?? [],

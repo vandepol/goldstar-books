@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   // Real pictures for this book, painted now so the first read has them.
   // Failures degrade to the drawn scenes; the words are never held hostage.
   if (merged.illustrate && canIllustrate()) {
-    await illustrateBook(book, book.id);
+    await illustrateBook(book, book.id, child.id);
   }
 
   const saved = await db.book.create({

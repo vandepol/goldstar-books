@@ -89,6 +89,42 @@ export async function generateImage(
   return { b64, mime: `image/${opts.format}` };
 }
 
+/**
+ * One images-API call *with a reference image* (the edits endpoint): the model
+ * is shown the character sheet and told to draw that exact character in a new
+ * scene. This is what actually holds a hero's look steady across pages —
+ * appearance text alone only gets approximately the same child each time.
+ */
+export async function generateImageWithReference(
+  apiKey: string,
+  prompt: string,
+  reference: { bytes: Uint8Array; mime: string },
+  opts: ImageOptions,
+): Promise<{ b64: string; mime: string }> {
+  const form = new FormData();
+  form.append('model', IMAGE_MODEL);
+  form.append('prompt', prompt);
+  form.append('n', '1');
+  form.append('size', opts.size);
+  form.append('quality', opts.quality);
+  form.append('output_format', opts.format);
+  if (opts.format !== 'png') form.append('output_compression', String(opts.compression));
+  form.append('image[]', new Blob([reference.bytes as BlobPart], { type: reference.mime }), 'character-sheet.jpg');
+
+  const res = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${apiKey}` },
+    body: form,
+  });
+  if (!res.ok) {
+    throw new Error(`OpenAI images edits API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  }
+  const data = (await res.json()) as { data: { b64_json: string }[] };
+  const b64 = data.data?.[0]?.b64_json;
+  if (!b64) throw new Error('OpenAI images edits API returned no image');
+  return { b64, mime: `image/${opts.format}` };
+}
+
 /** Rough list pricing per image by quality at 1536×1024. Revisit over time. */
 export function estimateImageCost(images: number, quality: ImageOptions['quality'] = 'medium'): number {
   const per = quality === 'low' ? 0.016 : quality === 'medium' ? 0.063 : 0.25;

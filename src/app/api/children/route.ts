@@ -9,6 +9,14 @@ const CreateChild = z.object({
   interests: z.array(z.string().max(40)).max(8).default([]),
   avoid: z.array(z.string().max(40)).max(20).default([]),
   appearance: z.string().max(600).optional(),
+  palette: z
+    .object({
+      primary: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      secondary: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      skin: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      hair: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    })
+    .optional(),
 });
 
 export async function GET() {
@@ -32,6 +40,7 @@ export async function POST(request: Request) {
       interests: JSON.stringify(input.interests),
       avoid: JSON.stringify(input.avoid),
       appearance: input.appearance ?? null,
+      palette: input.palette ? JSON.stringify(input.palette) : null,
     },
   });
   return NextResponse.json({ child }, { status: 201 });

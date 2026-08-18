@@ -13,12 +13,57 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVELS, LEVEL_ORDER, type LevelId } from '@/lib/levels';
 
+/** The look-picker. What she picks here becomes the frozen appearance block
+ *  pasted into every illustration prompt, so the hero looks the same on every
+ *  page of every book — the single biggest lever on picture continuity. */
+const SKINS = [
+  ['#F5D6B8', 'fair'], ['#F0C8A0', 'light'], ['#E0B08A', 'tan'],
+  ['#C68863', 'light brown'], ['#8D5B3F', 'brown'], ['#5C3A21', 'deep brown'],
+] as const;
+const HAIRS = [
+  ['#1E1611', 'dark brown'], ['#4A3520', 'brown'], ['#B5471D', 'red'],
+  ['#D9A441', 'blond'], ['#707A85', 'grey'], ['#141210', 'black'],
+] as const;
+const SHIRTS = [
+  ['#F2B33D', 'gold'], ['#155E86', 'blue'], ['#1E7A4B', 'green'], ['#D66BA0', 'pink'],
+  ['#C0392B', 'red'], ['#6B4FA0', 'purple'], ['#2A9D8F', 'teal'], ['#D97B29', 'orange'],
+] as const;
+
+function Swatches({
+  options, value, onPick, label,
+}: {
+  options: readonly (readonly [string, string])[];
+  value: string;
+  onPick: (hex: string) => void;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="w-28 text-sm text-muted">{label}</span>
+      {options.map(([hex, word]) => (
+        <button
+          key={hex}
+          type="button"
+          title={word}
+          onClick={() => onPick(hex)}
+          className="h-9 w-9 rounded-full border-[2.5px]"
+          style={{ background: hex, borderColor: value === hex ? '#16283D' : 'transparent' }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function NewReader({ first, onDone }: { first?: boolean; onDone?: () => void }) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [levelId, setLevelId] = useState<LevelId | null>(null);
   const [interests, setInterests] = useState('');
   const [avoid, setAvoid] = useState('');
+  const [skin, setSkin] = useState<string>(SKINS[2][0]);
+  const [hair, setHair] = useState<string>(HAIRS[0][0]);
+  const [shirt, setShirt] = useState<string>(SHIRTS[0][0]);
+  const [look, setLook] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +84,13 @@ export function NewReader({ first, onDone }: { first?: boolean; onDone?: () => v
           levelId,
           interests: interests.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 8),
           avoid: avoid.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 20),
+          appearance: [
+            `${name.trim()}, a young child with ${SKINS.find(([h]) => h === skin)?.[1]} skin and ${HAIRS.find(([h]) => h === hair)?.[1]} hair`,
+            look.trim(),
+            `wearing a ${SHIRTS.find(([h]) => h === shirt)?.[1]} top`,
+            'this exact look on every page',
+          ].filter(Boolean).join(', '),
+          palette: { primary: shirt, secondary: '#155E86', skin, hair },
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -96,6 +148,28 @@ export function NewReader({ first, onDone }: { first?: boolean; onDone?: () => v
           );
         })}
       </div>
+
+      <p className="mb-2 mt-6 text-sm font-semibold">How she looks</p>
+      <p className="mb-3 text-xs text-muted">
+        This becomes her frozen look — the pictures draw this exact child on every page of every
+        book, so get it right once and it sticks.
+      </p>
+      <div className="space-y-2.5">
+        <Swatches options={SKINS} value={skin} onPick={setSkin} label="Skin" />
+        <Swatches options={HAIRS} value={hair} onPick={setHair} label="Hair" />
+        <Swatches options={SHIRTS} value={shirt} onPick={setShirt} label="Favourite colour" />
+      </div>
+      <label className="mt-4 block text-sm font-semibold">
+        Anything else about her look <span className="font-normal text-muted">(optional — pigtails, glasses, a red bandana…)</span>
+        <input
+          type="text"
+          maxLength={200}
+          value={look}
+          onChange={(e) => setLook(e.target.value)}
+          placeholder="brown pigtails and a red bandana"
+          className="mt-2 block w-full max-w-md rounded-xl border-[1.5px] border-[#C9BDA3] bg-white px-4 py-3 font-normal outline-none focus:border-sea"
+        />
+      </label>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-semibold">

@@ -39,6 +39,8 @@ model Child {
   avoid     String   @default("[]")
   /// Frozen appearance block, reused as the hero of every book she stars in.
   appearance String?
+  /// JSON {primary, secondary, skin, hair} hex palette matching the appearance.
+  palette   String?
   createdAt DateTime @default(now())
 
   owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
